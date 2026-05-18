@@ -1,0 +1,59 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paul_app
+    ports:
+      - "8000:80"
+    volumes:
+      - ./src:/app/src
+      - ./templates:/app/templates
+      - ./public:/app/public
+      - ./var:/app/var
+    environment:
+      # Hardcoded database connection string
+      DATABASE_URL: "mysql://app_user:app_password@db:3306/app_db?serverVersion=8.0.32&charset=utf8mb4"
+      APP_ENV: dev
+      APP_DEBUG: "1"
+      APP_SECRET: "MySuperSecretLocalDevKey123!"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - platform-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  db:
+    image: mysql:8.0
+    container_name: paul_db
+    environment:
+      # Hardcoded MySQL credentials
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: app_db
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: app_password
+    ports:
+      - "3310:3306"
+    volumes:
+      - platform-db-data:/var/lib/mysql
+    networks:
+      - platform-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  platform-db-data:
+
+networks:
+  platform-network:
+    driver: bridge
